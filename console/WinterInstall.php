@@ -8,38 +8,38 @@ use File;
 use Config;
 use Backend\Database\Seeds\SeedSetupAdmin;
 use System\Classes\UpdateManager;
-use October\Rain\Config\ConfigWriter;
+use Winter\Storm\Config\ConfigWriter;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use Symfony\Component\Console\Input\InputOption;
 use Exception;
 
 /**
- * Console command to install October.
+ * Console command to install Winter.
  *
- * This sets up October for the first time. It will prompt the user for several
+ * This sets up Winter for the first time. It will prompt the user for several
  * configuration items, including application URL and database config, and then
  * perform a database migration.
  *
- * @package october\system
+ * @package winter\wn-system-module
  * @author Alexey Bobkov, Samuel Georges
  */
-class OctoberInstall extends Command
+class WinterInstall extends Command
 {
     use \Illuminate\Console\ConfirmableTrait;
 
     /**
      * The console command name.
      */
-    protected $name = 'october:install';
+    protected $name = 'winter:install';
 
     /**
      * The console command description.
      */
-    protected $description = 'Set up October for the first time.';
+    protected $description = 'Set up Winter for the first time.';
 
     /**
-     * @var October\Rain\Config\ConfigWriter
+     * @var Winter\Storm\Config\ConfigWriter
      */
     protected $configWriter;
 
@@ -112,7 +112,23 @@ class OctoberInstall extends Command
     protected function setupCommonValues()
     {
         $url = $this->ask('Application URL', Config::get('app.url'));
-        $this->writeToConfig('app', ['url' => $url]);
+
+        try {
+            $availableLocales = (new \Backend\Models\Preference)->getLocaleOptions();
+            $localesByName = [];
+            foreach ($availableLocales as $locale => $name) {
+                $localesByName[$name[0]] = $locale;
+            }
+
+            $localeName = $this->choice('Default Backend Locale', array_keys($localesByName));
+
+            $locale = $localesByName[$localeName];
+        } catch (\Exception $e) {
+            // Installation failed halfway through, recover gracefully
+            $locale = $this->ask('Default Backend Locale', 'en');
+        }
+
+        $this->writeToConfig('app', ['url' => $url, 'locale' => $locale]);
     }
 
     protected function setupAdvancedValues()
@@ -133,11 +149,11 @@ class OctoberInstall extends Command
     protected function askToInstallPlugins()
     {
         $chosenToInstall = [];
-        if ($this->confirm('Install the October.Drivers plugin?', false)) {
-            $chosenToInstall[] = 'October.Drivers';
+        if ($this->confirm('Install the Winter.Drivers plugin?', false)) {
+            $chosenToInstall[] = 'Winter.Drivers';
         }
-        if ($this->confirm('Install the Rainlab.Builder plugin?', false)) {
-            $chosenToInstall[] = 'Rainlab.Builder';
+        if ($this->confirm('Install the Winter.Builder plugin?', false)) {
+            $chosenToInstall[] = 'Winter.Builder';
         }
         return $chosenToInstall;
     }
@@ -201,7 +217,7 @@ class OctoberInstall extends Command
 
     protected function setupDatabaseConfig()
     {
-        $type = $this->choice('Database type', ['MySQL', 'Postgres', 'SQLite', 'SQL Server']);
+        $type = $this->choice('Database type', ['MySQL', 'Postgres', 'SQLite', 'SQL Server'], 'SQLite');
 
         $typeMap = [
             'SQLite' => 'sqlite',
@@ -323,16 +339,16 @@ class OctoberInstall extends Command
     protected function displayIntro()
     {
         $message = [
-            ".====================================================================.",
-            "                                                                      ",
-            " .d8888b.   .o8888b.   db  .d8888b.  d8888b. d88888b d8888b.  .d888b. ",
-            ".8P    Y8. d8P    Y8   88 .8P    Y8. 88  `8D 88'     88  `8D .8P , Y8.",
-            "88      88 8P      oooo88 88      88 88oooY' 88oooo  88oobY' 88  |  88",
-            "88      88 8b      ~~~~88 88      88 88~~~b. 88~~~~  88`8b   88  |/ 88",
-            "`8b    d8' Y8b    d8   88 `8b    d8' 88   8D 88.     88 `88. `8b | d8'",
-            " `Y8888P'   `Y8888P'   YP  `Y8888P'  Y8888P' Y88888P 88   YD  `Y888P' ",
-            "                                                                      ",
-            "`=========================== INSTALLATION ==========================='",
+            ".========================================================================.",
+            "                                                                          ",
+            " db   d8b   db d888888b d8b   db d888888b d88888b d8888b.       \033[1;34m...\033[0m ",
+            " 88   I8I   88   `88'   888o  88 `~~88~~' 88'     88  `8D  \033[1;34m... ..... ...\033[0m ",
+            " 88   I8I   88    88    88V8o 88    88    88ooooo 88oobY'    \033[1;34m.. ... ..\033[0m ",
+            " Y8   I8I   88    88    88 V8o88    88    88~~~~~ 88`8b      \033[1;34m.. ... ..\033[0m ",
+            " `8b d8'8b d8'   .88.   88  V888    88    88.     88 `88.  \033[1;34m... ..... ...\033[0m ",
+            "  `8b8' `8d8'  Y888888P VP   V8P    YP    Y88888P 88   YD       \033[1;34m...\033[0m ",
+            "                                                                         ",
+            "`============================= INSTALLATION =============================",
             "",
         ];
 
@@ -342,17 +358,17 @@ class OctoberInstall extends Command
     protected function displayOutro()
     {
         $message = [
-            ".=========================================.",
-            "                ,@@@@@@@,                  ",
-            "        ,,,.   ,@@@@@@/@@,  .oo8888o.      ",
-            "     ,&%%&%&&%,@@@@@/@@@@@@,8888\88/8o     ",
-            "    ,%&\%&&%&&%,@@@\@@@/@@@88\88888/88'    ",
-            "    %&&%&%&/%&&%@@\@@/ /@@@88888\88888'    ",
-            "    %&&%/ %&%%&&@@\ V /@@' `88\8 `/88'     ",
-            "    `&%\ ` /%&'    |.|        \ '|8'       ",
-            "        |o|        | |         | |         ",
-            "        |.|        | |         | |         ",
-            "`========= INSTALLATION COMPLETE ========='",
+            // Sourced from https://www.asciiart.eu/holiday-and-events/christmas/snowmen
+            ".===========================================================.",
+            " *    *           *.   *   .                      *     .    ",
+            "         .   .               __   *    .     * .     *       ",
+            "      *         *   . .    _|__|_        *    __   .       * ",
+            "  /\       /\               ('')    *       _|__|_     .     ",
+            " /  \   * /  \  *      .  <( . )> *  .       ('')   *   *    ",
+            " /  \     /  \   .       _(__.__)_  _   ,--<(  . )>  .    .  ",
+            "/    \   /    \      *   |       |  )),`   (   .  )     *    ",
+            " `||` ..  `||`   . *... ==========='`   ... '--`-` ... * jb .",
+            "`================== INSTALLATION COMPLETE =================='",
             "",
         ];
 
