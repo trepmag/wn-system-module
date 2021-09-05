@@ -393,8 +393,8 @@
     }
 
     FilterWidget.prototype.fillOptions = function(scopeName, data) {
-        if (this.scopeValues[scopeName])
-            return
+        // if (this.scopeValues[scopeName])
+        //     return
 
         if (!data.active) data.active = []
         if (!data.available) data.available = []
@@ -476,7 +476,7 @@
     /*
      * Saves the options to the update handler
      */
-    FilterWidget.prototype.pushOptions = function(scopeName) {
+    FilterWidget.prototype.pushOptions = function(scopeName, filterScope) {
         if (!this.isActiveScopeDirty || !this.options.updateHandler)
             return
 
@@ -488,6 +488,9 @@
 
         $.wn.stripeLoadIndicator.show()
 
+        if (filterScope) {
+            data['filterScope'] = true
+        }
         this.$el.request(this.options.updateHandler, {
             data: data
         }).always(function () {
@@ -556,7 +559,7 @@
             this.updateScopeSetting(this.$activeScope, 0)
         }
 
-        this.pushOptions(scopeName)
+        this.pushOptions(scopeName, true)
         this.isActiveScopeDirty = false
         this.$activeScope.data('oc.popover').hide()
     }
@@ -600,6 +603,7 @@
             self.lastDataTrackInputRequest = self.$el.request(self.options.optionsHandler, {
                 data: data
             }).success(function(data){
+                self.fillOptions(self.activeScopeName, data.options)
                 self.filterAvailable(self.activeScopeName, data.options.available)
                 self.toggleFilterButtons()
             }).always(function(){
